@@ -1,0 +1,117 @@
+# ============================================================
+# docker-compose.yml
+# ============================================================
+# IoT DDoS Filtering — Full-stack Docker Compose setup.
+#
+# Services:
+#   backend    — Flask API + ML inference + SQLite
+#   frontend   — Nginx serving the dashboard + API reverse proxy
+#   mosquitto  — MQTT broker for IoT telemetry
+#
+# Mininet, OVS, Ryu, and Zeek are NOT containerised. They
+# require Linux kernel features. See DOCKER.md for details.
+#
+# Usage:
+#   docker compose up --build          # build + start
+#   docker compose up --build -d       # background
+#   docker compose logs -f             # stream logs
+#   docker compose down                # stop (keeps data)
+#   docker compose down -v             # stop + delete volumes
+# ============================================================
+
+services:
+  # ─────────────────────────────────────────────────────────────
+  # Flask Backend
+  # ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./iot-ddos-filtering
+      dockerfile: Dockerfile
+    container_name: iot-ddos-backend
+    ports:
+      - "${BACKEND_HOST_PORT:-5000}:5000"
+    environment:
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      - FLASK_DEBUG=${FLASK_DEBUG:-false}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+      - DATABASE_PATH=/app/data/iot_ddos.db
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MITIGATION_ENABLED=${MITIGATION_ENABLED:-true}
+      - DETECTION_THRESHOLD=${DETECTION_THRESHOLD:-0.7}
+      - MONITOR_INTERVAL_SECONDS=${MONITOR_INTERVAL_SECONDS:-5.0}
+    volumes:
+      - backend-data:/app/data
+    networks:
+      - iot-network
+    depends_on:
+      mosquitto:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # Nginx Frontend
+  # ─────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iot-ddos-frontend
+    ports:
+      - "${FRONTEND_HOST_PORT:-8080}:80"
+    networks:
+      - iot-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # Mosquitto MQTT Broker
+  # ─────────────────────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: iot-ddos-mqtt
+    ports:
+      - "${MQTT_HOST_PORT:-1883}:1883"
+    volumes:
+      - ./iot-ddos-filtering/docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    networks:
+      - iot-network
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+
+# ─────────────────────────────────────────────────────────────
+# Volumes — persistent data across container recreations
+# ─────────────────────────────────────────────────────────────
+volumes:
+  backend-data:
+    driver: local
+  mosquitto-data:
+    driver: local
+  mosquitto-log:
+    driver: local
+
+# ─────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────
+networks:
+  iot-network:
+    driver: bridge
+

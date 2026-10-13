@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Mitigations | IoT DDoS Monitor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/main.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/tables.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2"/>
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+<header class="app-header">
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+    <i class="fa-solid fa-shield-halved brand-icon"></i>
+    IoT DDoS Monitor
+  </a>
+  <div class="header-spacer"></div>
+  <div class="header-meta">
+    <span id="demo-mode-badge" class="demo-badge" style="display:none">
+      <i class="fa-solid fa-flask"></i> DEMO MODE
+    </span>
+    <span class="api-status-dot" id="api-dot"></span>
+    <span id="api-status-text" style="font-size:0.78rem">Connecting…</span>
+    <span class="last-updated" style="font-size:0.78rem">Updated: <span id="last-updated-time">—</span></span>
+    <button class="header-refresh-btn" id="global-refresh" aria-label="Refresh">
+      <i class="fa-solid fa-rotate-right"></i> Refresh
+    </button>
+    <button
+      class="header-theme-toggle"
+      id="theme-toggle-btn"
+      type="button"
+      aria-label="Toggle light or dark theme"
+      title="Toggle Theme"
+    >
+      <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+    </button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item" href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a class="nav-item" href="devices.html"><i class="fa-solid fa-microchip"></i> IoT Devices</a>
+      <a class="nav-item" href="traffic.html"><i class="fa-solid fa-wave-square"></i> Traffic Monitor</a>
+      <a class="nav-item" href="alerts.html">
+        <i class="fa-solid fa-bell"></i> Detections &amp; Alerts
+        <span class="nav-badge" id="alerts-badge" style="display:none">0</span>
+      </a>
+      <a class="nav-item active" href="mitigations.html" aria-current="page">
+        <i class="fa-solid fa-shield-virus"></i> Mitigations
+      </a>
+      <a class="nav-item" href="system.html"><i class="fa-solid fa-server"></i> System Status</a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-shield-virus" style="color:var(--accent)"></i> Mitigations</h1>
+        <p class="page-subtitle">DDoS mitigation actions — both simulated and real OVS/Ryu rules</p>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn btn-danger btn-sm" id="manual-mitigate-btn">
+          <i class="fa-solid fa-ban"></i> Block IP Manually
+        </button>
+        <button class="btn btn-ghost btn-sm" id="mit-refresh-btn">
+          <i class="fa-solid fa-rotate-right"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Important note about simulated actions -->
+    <div class="alert-banner info" id="simulated-note" style="margin-bottom:1rem">
+      <i class="fa-solid fa-circle-info"></i>
+      Actions marked <strong>SIMULATED</strong> did not install a real OVS/Ryu rule.
+      This is expected in DEMO MODE and when Ryu/OVS are unavailable.
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:1.25rem">
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="fa-solid fa-shield-virus"></i> Total Actions</div>
+        <div class="kpi-value" id="kpi-total-mit">—</div>
+      </div>
+      <div class="kpi-card kpi-success">
+        <div class="kpi-label"><i class="fa-solid fa-circle-check"></i> Successful</div>
+        <div class="kpi-value" id="kpi-success-mit">—</div>
+      </div>
+      <div class="kpi-card kpi-danger">
+        <div class="kpi-label"><i class="fa-solid fa-circle-xmark"></i> Failed</div>
+        <div class="kpi-value" id="kpi-failed-mit">—</div>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-label"><i class="fa-solid fa-flask"></i> Simulated</div>
+        <div class="kpi-value" id="kpi-simulated-mit">—</div>
+        <div class="kpi-sub">No real OVS rule</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-group" style="flex:1;min-width:180px;max-width:260px">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="input" id="mit-search" placeholder="Search source IP…" type="search" aria-label="Search mitigations"/>
+      </div>
+      <select class="select" id="mit-action-filter" aria-label="Filter by action">
+        <option value="">All Actions</option>
+        <option value="BLOCK">BLOCK</option>
+        <option value="UNBLOCK">UNBLOCK</option>
+      </select>
+      <select class="select" id="mit-sim-filter" aria-label="Filter simulated">
+        <option value="">All</option>
+        <option value="1">Simulated Only</option>
+        <option value="0">Real Only</option>
+      </select>
+      <span id="mit-count-label" style="font-size:0.78rem;color:var(--text-secondary);white-space:nowrap"></span>
+    </div>
+
+    <!-- Mitigations Table -->
+    <div class="card" style="padding:0">
+      <div class="table-wrapper">
+        <table id="mit-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Source IP</th>
+              <th>Device</th>
+              <th>Action</th>
+              <th>Rule ID</th>
+              <th>Reason</th>
+              <th>Success</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody id="mit-tbody">
+            <tr class="table-loading">
+              <td colspan="8">
+                <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:2rem;color:var(--text-secondary)">
+                  <span class="spinner"></span> Loading mitigations…
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="mit-pagination"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Manual mitigate modal -->
+<div class="modal-backdrop hidden" id="manual-mit-modal" role="dialog" aria-modal="true" aria-labelledby="manual-mit-title">
+  <div class="modal-box">
+    <h3 class="modal-title" id="manual-mit-title">Block Source IP</h3>
+    <p class="modal-body">Enter the source IP address to block. This will install a DROP rule via Ryu/OVS (or simulate it in DEMO MODE).</p>
+    <div style="margin-bottom:1rem">
+      <label for="manual-mit-ip" style="font-size:0.8rem;color:var(--text-secondary);display:block;margin-bottom:0.4rem">Source IP Address</label>
+      <input class="input" id="manual-mit-ip" placeholder="e.g. 10.0.0.6" type="text" aria-label="Source IP to block"/>
+      <div id="manual-mit-error" style="font-size:0.78rem;color:var(--red);margin-top:0.3rem;display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="manual-mit-cancel">Cancel</button>
+      <button class="btn btn-danger" id="manual-mit-confirm">
+        <i class="fa-solid fa-ban"></i> Block IP
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop hidden" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h3 class="modal-title" id="modal-title">Confirm Action</h3>
+    <p class="modal-body" id="modal-body"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script src="../js/config.js?v=3.2"></script>
+<script src="../js/api.js?v=3.2"></script>
+<script src="../js/utils.js?v=3.2"></script>
+<script src="../js/state.js?v=3.2"></script>
+<script src="../js/mitigations.js?v=3.2"></script>
+</body>
+</html>
+

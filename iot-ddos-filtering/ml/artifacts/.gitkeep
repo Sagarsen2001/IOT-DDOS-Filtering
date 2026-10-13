@@ -1,0 +1,3 @@
+# ml/artifacts/.gitkeep
+# This directory stores trained model artifacts (*.joblib, *.json).
+# It is intentionally kept empty in version control.

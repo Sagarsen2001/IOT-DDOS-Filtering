@@ -1,0 +1,9 @@
+{
+  "_note": "Mock data for UI development. NOT real backend data. USE_MOCK_DATA must be false in production.",
+  "devices": [
+    { "device_id": "sensor-001", "ip_address": "10.0.0.1", "mac_address": "aa:bb:cc:dd:ee:01", "status": "active", "last_seen": "2024-01-15T10:00:00Z", "packet_rate": 3.2 },
+    { "device_id": "sensor-002", "ip_address": "10.0.0.2", "mac_address": "aa:bb:cc:dd:ee:02", "status": "active", "last_seen": "2024-01-15T10:00:05Z", "packet_rate": 2.8 },
+    { "device_id": "sensor-006", "ip_address": "10.0.0.6", "mac_address": "aa:bb:cc:dd:ee:06", "status": "suspicious", "last_seen": "2024-01-15T10:00:10Z", "packet_rate": 4200 }
+  ],
+  "count": 3
+}

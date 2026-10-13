@@ -1,0 +1,23 @@
+{
+  "_note": "Mock metrics for UI development. NOT real backend data.",
+  "ml": {
+    "accuracy": 0.97,
+    "precision": 0.96,
+    "recall": 0.95,
+    "f1_score": 0.955,
+    "false_positive_rate": 0.02,
+    "true_positive_rate": 0.95,
+    "model_version": "rf-v1",
+    "confusion_matrix": { "tn": 650, "fp": 13, "fn": 17, "tp": 320 }
+  },
+  "network": {
+    "avg_byte_rate": 480.5,
+    "avg_duration": 8.3,
+    "total_flows": 1000
+  },
+  "security": {
+    "total_alerts": 12,
+    "total_ddos_detected": 35,
+    "unique_blocked_devices": 1
+  }
+}

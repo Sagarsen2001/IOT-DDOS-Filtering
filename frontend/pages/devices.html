@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoT Devices | IoT DDoS Monitor</title>
+
+  <!-- Font Awesome 6 -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- App Styles (Cache-busted) -->
+  <link rel="stylesheet" href="../css/main.css?v=3.2" />
+  <link rel="stylesheet" href="../css/dashboard.css?v=3.2" />
+  <link rel="stylesheet" href="../css/tables.css?v=3.2" />
+  <link rel="stylesheet" href="../css/charts.css?v=3.2" />
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2" />
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+  <!-- ═══════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════ -->
+  <header class="app-header" role="banner">
+    <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <span>IoT DDoS Monitor</span>
+    </a>
+    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="sidebar">
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+    <div class="header-spacer" role="separator"></div>
+    <div class="header-meta" role="toolbar" aria-label="Dashboard controls">
+      <span id="demo-mode-badge" class="demo-badge" style="display:none" aria-live="polite" aria-atomic="true">DEMO MODE</span>
+      <span class="api-status-dot" id="api-dot" aria-hidden="true"></span>
+      <span id="api-status-text" class="api-status-text" aria-live="polite">Connecting…</span>
+      <span class="last-updated">Updated: <span id="last-updated-time">—</span></span>
+      <button class="header-refresh-btn" id="global-refresh" type="button" aria-label="Refresh all data">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+      </button>
+      <button
+        class="header-theme-toggle"
+        id="theme-toggle-btn"
+        type="button"
+        aria-label="Toggle light or dark theme"
+        title="Toggle Theme"
+      >
+        <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════
+       APP BODY
+  ═══════════════════════════════════════════════ -->
+  <div class="app-body">
+
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item" href="dashboard.html"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a>
+      <a class="nav-item active" href="devices.html" aria-current="page"><i class="fa-solid fa-microchip"></i> <span>IoT Devices</span></a>
+      <a class="nav-item" href="traffic.html"><i class="fa-solid fa-wave-square"></i> <span>Traffic Monitor</span></a>
+      <a class="nav-item" href="alerts.html"><i class="fa-solid fa-bell"></i> <span>Detections &amp; Alerts</span><span class="nav-badge" id="alerts-badge" style="display:none">0</span></a>
+      <a class="nav-item" href="mitigations.html"><i class="fa-solid fa-shield-virus"></i> <span>Mitigations</span></a>
+      <a class="nav-item" href="system.html"><i class="fa-solid fa-server"></i> <span>System Status</span></a>
+    </nav>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════════ -->
+  <main class="main-content" id="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__text">
+        <h1 class="page-title">IoT Devices</h1>
+        <p class="page-subtitle">Registered devices and their security state</p>
+      </div>
+
+      <div class="page-header__actions">
+        <button class="btn btn-ghost" id="register-device-btn" aria-label="Register a new device">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          Register Device
+        </button>
+        <button class="btn btn-ghost" id="devices-refresh-btn" onclick="typeof refresh === 'function' && refresh()" aria-label="Refresh device list">
+          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" role="search" aria-label="Device filters">
+
+      <div class="search-group">
+        <label for="device-search" class="sr-only">Search devices</label>
+        <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+        <input
+          type="search"
+          id="device-search"
+          class="search-input"
+          placeholder="Search by ID or IP…"
+          autocomplete="off"
+          aria-label="Search by Device ID or IP address"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="device-status-filter" class="sr-only">Filter by status</label>
+        <select id="device-status-filter" class="filter-select" aria-label="Filter by device status">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="suspicious">Suspicious</option>
+          <option value="blocked">Blocked</option>
+          <option value="offline">Offline</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="device-sort" class="sr-only">Sort devices</label>
+        <select id="device-sort" class="filter-select" aria-label="Sort devices by">
+          <option value="last_seen">Sort by: Last Seen</option>
+          <option value="device_id">Sort by: Device ID</option>
+          <option value="ip_address">Sort by: IP Address</option>
+        </select>
+      </div>
+
+      <span id="device-count-label" class="filter-count" aria-live="polite" aria-atomic="true"></span>
+    </div>
+
+    <!-- Devices Table Card -->
+    <div class="card">
+      <div class="table-wrapper" role="region" aria-label="Devices table" tabindex="0">
+        <table id="devices-table" class="data-table" aria-describedby="device-count-label">
+          <thead>
+            <tr>
+              <th scope="col">Device ID</th>
+              <th scope="col">IP Address</th>
+              <th scope="col">MAC Address</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last Seen</th>
+              <th scope="col">Prediction</th>
+              <th scope="col">Packet Rate</th>
+              <th scope="col" class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="devices-tbody" aria-live="polite" aria-busy="true">
+
+            <!-- Skeleton loading rows -->
+            <tr class="skeleton-row" aria-hidden="true">
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--actions"></div></td>
+            </tr>
+
+            <tr class="skeleton-row" aria-hidden="true">
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--actions"></div></td>
+            </tr>
+
+            <tr class="skeleton-row" aria-hidden="true">
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--text"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--badge"></div></td>
+              <td><div class="skeleton skeleton--text skeleton--short"></div></td>
+              <td><div class="skeleton skeleton--actions"></div></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <nav
+        class="pagination"
+        id="devices-pagination"
+        aria-label="Device table pagination"
+      ></nav>
+    </div>
+
+  </main><!-- /#main-content -->
+  </div><!-- /.app-body -->
+
+  <!-- ═══════════════════════════════════════════════
+       DEVICE DETAIL MODAL
+  ═══════════════════════════════════════════════ -->
+  <div
+    class="modal-backdrop hidden"
+    id="device-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="device-modal-title"
+    tabindex="-1"
+  >
+    <div class="modal-box" style="max-width:520px">
+
+      <div class="modal-header">
+        <h2 class="modal-title" id="device-modal-title">Device Details</h2>
+        <button
+          class="modal-close-x"
+          id="device-modal-close-x"
+          aria-label="Close device detail modal"
+          onclick="closeDeviceModal()"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Two-column detail grid -->
+        <dl class="device-detail-grid">
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
+              IP Address
+            </dt>
+            <dd class="detail-value" id="detail-ip">—</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-solid fa-ethernet" aria-hidden="true"></i>
+              MAC Address
+            </dt>
+            <dd class="detail-value" id="detail-mac">—</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-solid fa-circle-dot" aria-hidden="true"></i>
+              Status
+            </dt>
+            <dd class="detail-value" id="detail-status">—</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-regular fa-clock" aria-hidden="true"></i>
+              Last Seen
+            </dt>
+            <dd class="detail-value" id="detail-last-seen">—</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-solid fa-tachometer-alt" aria-hidden="true"></i>
+              Packet Rate
+            </dt>
+            <dd class="detail-value" id="detail-packet-rate">—</dd>
+          </div>
+
+          <div class="detail-item">
+            <dt class="detail-label">
+              <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
+              Protocol
+            </dt>
+            <dd class="detail-value" id="detail-protocol">—</dd>
+          </div>
+
+        </dl>
+
+        <hr class="modal-divider" aria-hidden="true" />
+
+        <h3 class="modal-section-title">
+          <i class="fa-solid fa-brain" aria-hidden="true"></i>
+          Recent Predictions
+        </h3>
+
+        <div
+          id="device-predictions-list"
+          class="predictions-list"
+          aria-live="polite"
+          aria-busy="false"
+        >
+          <!-- Populated by devices.js -->
+        </div>
+
+      </div><!-- /.modal-body -->
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="device-modal-close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          Close
+        </button>
+        <button class="btn btn-danger" id="device-block-btn" aria-label="Block this device">
+          <i class="fa-solid fa-ban" aria-hidden="true"></i>
+          Block
+        </button>
+        <button
+          class="btn btn-ghost hidden"
+          id="device-unblock-btn"
+          aria-label="Unblock this device"
+        >
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+          Unblock
+        </button>
+      </div>
+
+    </div><!-- /.modal-box -->
+  </div><!-- /#device-modal -->
+
+  <!-- ═══════════════════════════════════════════════
+       CONFIRM MODAL
+  ═══════════════════════════════════════════════ -->
+  <div class="modal-backdrop hidden" id="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-body" tabindex="-1">
+    <div class="modal-box modal-box--sm">
+      <h3 class="modal-title" id="modal-title">Confirm Action</h3>
+      <p class="modal-body" id="modal-body"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TOAST CONTAINER
+  ═══════════════════════════════════════════════ -->
+  <div
+    id="toast-container"
+    class="toast-container"
+    role="status"
+    aria-live="polite"
+    aria-atomic="false"
+  ></div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCRIPTS
+  ═══════════════════════════════════════════════ -->
+  <script src="../js/config.js?v=3.2"></script>
+  <script src="../js/api.js?v=3.2"></script>
+  <script src="../js/utils.js?v=3.2"></script>
+  <script src="../js/state.js?v=3.2"></script>
+  <script src="../js/devices.js?v=3.2"></script>
+
+</body>
+</html>

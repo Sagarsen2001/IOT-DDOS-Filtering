@@ -1,0 +1,47 @@
+# ── Python / venv ─────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ── Git / editor ──────────────────────────────────────────────
+.git
+.gitignore
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ── Env / secrets ─────────────────────────────────────────────
+.env
+.env.local
+
+# ── Docker files (don't copy into image) ──────────────────────
+Dockerfile
+docker-compose.yml
+docker/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+
+# ── Large raw datasets (not needed at runtime) ────────────────
+data/raw/
+data/processed/dataset.csv
+
+# ── SQLite database (created fresh in Docker volume) ──────────
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# ── Keep these (do NOT ignore):
+#    ml/artifacts/*.joblib   — trained model + preprocessing
+#    ml/artifacts/*.json     — evaluation metrics
+#    data/samples/           — sample Zeek logs for testing

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Traffic Monitor | IoT DDoS Monitor</title>
+
+  <!-- Font Awesome CDN -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- App Stylesheets (Cache-busted) -->
+  <link rel="stylesheet" href="../css/main.css?v=3.2" />
+  <link rel="stylesheet" href="../css/dashboard.css?v=3.2" />
+  <link rel="stylesheet" href="../css/tables.css?v=3.2" />
+  <link rel="stylesheet" href="../css/charts.css?v=3.2" />
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2" />
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+  <!-- Header -->
+  <header class="app-header" role="banner">
+    <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <span>IoT DDoS Monitor</span>
+    </a>
+    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="sidebar">
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+    <div class="header-spacer" role="separator"></div>
+    <div class="header-meta" role="toolbar" aria-label="Dashboard controls">
+      <span id="demo-mode-badge" class="demo-badge" style="display:none" aria-live="polite" aria-atomic="true">DEMO MODE</span>
+      <span class="api-status-dot" id="api-dot" aria-hidden="true"></span>
+      <span id="api-status-text" class="api-status-text" aria-live="polite">Connecting…</span>
+      <span class="last-updated">Updated: <span id="last-updated-time">—</span></span>
+      <button class="header-refresh-btn" id="global-refresh" type="button" aria-label="Refresh all data">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+      </button>
+      <button
+        class="header-theme-toggle"
+        id="theme-toggle-btn"
+        type="button"
+        aria-label="Toggle light or dark theme"
+        title="Toggle Theme"
+      >
+        <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <div class="nav-section-label">Navigation</div>
+        <a class="nav-item" href="dashboard.html"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a>
+        <a class="nav-item" href="devices.html"><i class="fa-solid fa-microchip"></i> <span>IoT Devices</span></a>
+        <a class="nav-item active" href="traffic.html" aria-current="page"><i class="fa-solid fa-wave-square"></i> <span>Traffic Monitor</span></a>
+        <a class="nav-item" href="alerts.html"><i class="fa-solid fa-bell"></i> <span>Detections &amp; Alerts</span><span class="nav-badge" id="alerts-badge" style="display:none">0</span></a>
+        <a class="nav-item" href="mitigations.html"><i class="fa-solid fa-shield-virus"></i> <span>Mitigations</span></a>
+        <a class="nav-item" href="system.html"><i class="fa-solid fa-server"></i> <span>System Status</span></a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Traffic Monitoring</h1>
+          <p class="page-subtitle">Network flow records with ML predictions</p>
+        </div>
+
+        <div class="page-header-actions">
+          <!-- Auto-refresh toggle -->
+          <button
+            class="btn btn-ghost"
+            id="traffic-auto-refresh"
+            role="switch"
+            aria-checked="false"
+            aria-label="Toggle auto-refresh"
+          >
+            <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+            <span class="auto-refresh-label">Auto-Refresh: Off</span>
+          </button>
+
+          <button
+            class="btn btn-ghost"
+            id="traffic-refresh-header-btn"
+            type="button"
+            onclick="refresh()"
+            aria-label="Refresh traffic data"
+          >
+            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Row (3 stat cards) -->
+      <section class="kpi-grid kpi-row" role="region" aria-label="Traffic statistics">
+
+        <div class="kpi-card stat-card" aria-labelledby="kpi-total-label">
+          <div class="kpi-label" id="kpi-total-label">
+            <i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Total Flows
+          </div>
+          <div
+            class="kpi-value stat-card__value"
+            id="total-flows"
+            aria-live="polite"
+            aria-atomic="true"
+          >—</div>
+        </div>
+
+        <div class="kpi-card kpi-success stat-card" aria-labelledby="kpi-normal-label">
+          <div class="kpi-label" id="kpi-normal-label">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Normal Flows
+          </div>
+          <div
+            class="kpi-value stat-card__value stat-card__value--green"
+            id="normal-flows"
+            aria-live="polite"
+            aria-atomic="true"
+          >—</div>
+        </div>
+
+        <div class="kpi-card kpi-danger stat-card" aria-labelledby="kpi-ddos-label">
+          <div class="kpi-label" id="kpi-ddos-label">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> DDoS Flows
+          </div>
+          <div
+            class="kpi-value stat-card__value stat-card__value--red"
+            id="ddos-flows"
+            aria-live="polite"
+            aria-atomic="true"
+          >—</div>
+        </div>
+
+      </section>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar" role="search" aria-label="Traffic filters">
+
+        <div class="search-group">
+          <label for="traffic-search" class="sr-only">Search by source IP</label>
+          <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+          <input
+            type="search"
+            id="traffic-search"
+            class="input search-input"
+            placeholder="Source IP…"
+            autocomplete="off"
+            aria-label="Search by source IP address"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label for="traffic-prediction-filter" class="sr-only">Filter by prediction</label>
+          <select
+            id="traffic-prediction-filter"
+            class="select filter-select"
+            aria-label="Filter by ML prediction"
+          >
+            <option value="">All</option>
+            <option value="NORMAL">NORMAL</option>
+            <option value="DDOS">DDOS</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="traffic-protocol-filter" class="sr-only">Filter by protocol</label>
+          <select
+            id="traffic-protocol-filter"
+            class="select filter-select"
+            aria-label="Filter by network protocol"
+          >
+            <option value="">All Protocols</option>
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+            <option value="ICMP">ICMP</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="traffic-limit" class="sr-only">Rows to show</label>
+          <select
+            id="traffic-limit"
+            class="select filter-select"
+            aria-label="Number of rows to display"
+          >
+            <option value="20">Show 20</option>
+            <option value="50">Show 50</option>
+            <option value="100">Show 100</option>
+          </select>
+        </div>
+
+        <button
+          class="btn btn-ghost btn-icon"
+          id="traffic-refresh-btn"
+          type="button"
+          aria-label="Refresh traffic table"
+          title="Refresh"
+        >
+          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        </button>
+
+      </div><!-- /.filter-bar -->
+
+      <!-- Traffic Table Card -->
+      <div class="card">
+        <div
+          class="table-wrapper table-wrapper--wide"
+          role="region"
+          aria-label="Traffic flows table"
+          tabindex="0"
+        >
+          <table id="traffic-table" class="data-table data-table--dense">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Source IP</th>
+                <th scope="col">Dest IP</th>
+                <th scope="col">Src Port</th>
+                <th scope="col">Dst Port</th>
+                <th scope="col">Protocol</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Pkts</th>
+                <th scope="col">Bytes</th>
+                <th scope="col">Pkt Rate</th>
+                <th scope="col">Prediction</th>
+                <th scope="col">Confidence</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody
+              id="traffic-tbody"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <!-- Loading skeleton rows -->
+              <tr class="skeleton-row" aria-hidden="true">
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+              </tr>
+              <tr class="skeleton-row" aria-hidden="true">
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+              </tr>
+              <tr class="skeleton-row" aria-hidden="true">
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+                <td><div class="skeleton skeleton-text"></div></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Empty state (shown by JS when no rows) -->
+          <div class="empty-state hidden" id="traffic-empty-state" style="display:none">
+            <i class="fa-solid fa-filter-circle-xmark empty-state__icon" aria-hidden="true"></i>
+            <p class="empty-state__title">No traffic flows found</p>
+            <p class="empty-state__sub">Try adjusting your filters or refreshing the data.</p>
+            <button class="btn btn-ghost" id="traffic-empty-refresh-btn" type="button" onclick="refresh()">
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              Refresh
+            </button>
+          </div>
+
+        </div><!-- /.table-wrapper -->
+
+        <!-- Pagination -->
+        <nav
+          class="pagination"
+          id="traffic-pagination"
+          aria-label="Traffic table pagination"
+        ></nav>
+
+      </div><!-- /.card -->
+
+    </main>
+  </div><!-- /.app-body -->
+
+  <!-- Toast Container -->
+  <div
+    id="toast-container"
+    class="toast-container"
+    role="status"
+    aria-live="polite"
+    aria-atomic="false"
+  ></div>
+
+  <!-- Scripts -->
+  <script src="../js/config.js?v=3.2"></script>
+  <script src="../js/api.js?v=3.2"></script>
+  <script src="../js/utils.js?v=3.2"></script>
+  <script src="../js/state.js?v=3.2"></script>
+  <script src="../js/traffic.js?v=3.2"></script>
+
+</body>
+</html>

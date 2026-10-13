@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>System Status | IoT DDoS Monitor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/main.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/charts.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2"/>
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+<header class="app-header">
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+    <i class="fa-solid fa-shield-halved brand-icon"></i>
+    IoT DDoS Monitor
+  </a>
+  <div class="header-spacer"></div>
+  <div class="header-meta">
+    <span id="demo-mode-badge" class="demo-badge" style="display:none">
+      <i class="fa-solid fa-flask"></i> DEMO MODE
+    </span>
+    <span class="api-status-dot" id="api-dot"></span>
+    <span id="api-status-text" style="font-size:0.78rem">Connecting…</span>
+    <span class="last-updated" style="font-size:0.78rem">Updated: <span id="last-updated-time">—</span></span>
+    <button class="header-refresh-btn" id="global-refresh" aria-label="Refresh">
+      <i class="fa-solid fa-rotate-right"></i> Refresh
+    </button>
+    <button
+      class="header-theme-toggle"
+      id="theme-toggle-btn"
+      type="button"
+      aria-label="Toggle light or dark theme"
+      title="Toggle Theme"
+    >
+      <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+    </button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item" href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a class="nav-item" href="devices.html"><i class="fa-solid fa-microchip"></i> IoT Devices</a>
+      <a class="nav-item" href="traffic.html"><i class="fa-solid fa-wave-square"></i> Traffic Monitor</a>
+      <a class="nav-item" href="alerts.html">
+        <i class="fa-solid fa-bell"></i> Detections &amp; Alerts
+        <span class="nav-badge" id="alerts-badge" style="display:none">0</span>
+      </a>
+      <a class="nav-item" href="mitigations.html"><i class="fa-solid fa-shield-virus"></i> Mitigations</a>
+      <a class="nav-item active" href="system.html" aria-current="page">
+        <i class="fa-solid fa-server"></i> System Status
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-server" style="color:var(--accent)"></i> System Status</h1>
+        <p class="page-subtitle">Health of all system components</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="sys-refresh-btn">
+        <i class="fa-solid fa-rotate-right"></i> Refresh
+      </button>
+    </div>
+
+    <!-- Component Status Cards -->
+    <div class="system-status-grid" id="system-status-grid"
+         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
+      <!-- Dynamically rendered by system.js -->
+      <div class="card" style="min-height:90px">
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem">
+          <span class="spinner"></span>
+          <span style="color:var(--text-secondary);font-size:0.85rem">Loading status…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ML Model Performance -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header">
+        <h2 class="card-title"><i class="fa-solid fa-brain"></i> ML Model Performance</h2>
+        <span id="model-version-label" style="font-size:0.75rem;color:var(--text-muted)"></span>
+      </div>
+
+      <!-- Metrics grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;margin-bottom:1.25rem">
+        <div class="kpi-card kpi-accent">
+          <div class="kpi-label">Accuracy</div>
+          <div class="kpi-value" id="ml-accuracy">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Precision</div>
+          <div class="kpi-value" id="ml-precision">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Recall (TPR)</div>
+          <div class="kpi-value" id="ml-recall">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">F1-Score</div>
+          <div class="kpi-value" id="ml-f1">—</div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-label">False Pos. Rate</div>
+          <div class="kpi-value" id="ml-fpr">—</div>
+          <div class="kpi-sub">FP / (FP + TN)</div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-label">True Pos. Rate</div>
+          <div class="kpi-value" id="ml-tpr">—</div>
+          <div class="kpi-sub">TP / (TP + FN)</div>
+        </div>
+      </div>
+
+      <!-- Confusion Matrix -->
+      <h3 style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.75rem">
+        Confusion Matrix
+      </h3>
+      <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <!-- Header row: col labels -->
+          <div style="display:grid;grid-template-columns:auto 120px 120px;gap:4px;font-size:0.7rem;margin-bottom:4px;color:var(--text-secondary)">
+            <div></div>
+            <div style="text-align:center;font-weight:600">Predicted NORMAL</div>
+            <div style="text-align:center;font-weight:600">Predicted DDOS</div>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 120px 120px;gap:4px;font-size:0.7rem">
+            <div style="display:flex;align-items:center;writing-mode:vertical-lr;transform:rotate(180deg);font-weight:600;color:var(--text-secondary);padding-right:4px">
+              Actual
+            </div>
+            <div style="display:grid;grid-template-rows:1fr 1fr;gap:4px">
+              <div class="cm-cell cm-tn" id="cm-tn">
+                <div class="cm-count" id="cm-tn-val">—</div>
+                <div class="cm-type">TN</div>
+              </div>
+              <div class="cm-cell cm-fn" id="cm-fn">
+                <div class="cm-count" id="cm-fn-val">—</div>
+                <div class="cm-type">FN</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-rows:1fr 1fr;gap:4px">
+              <div class="cm-cell cm-fp" id="cm-fp">
+                <div class="cm-count" id="cm-fp-val">—</div>
+                <div class="cm-type">FP</div>
+              </div>
+              <div class="cm-cell cm-tp" id="cm-tp">
+                <div class="cm-count" id="cm-tp-val">—</div>
+                <div class="cm-type">TP</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:auto 120px 120px;gap:4px;margin-top:4px;font-size:0.68rem;color:var(--text-muted)">
+            <div></div>
+            <div style="text-align:center">True Normal</div>
+            <div style="text-align:center">True DDoS</div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.78rem;color:var(--text-secondary);max-width:260px">
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <div class="cm-cell cm-tn" style="min-width:24px;padding:0.3rem"></div>
+            <span><strong style="color:var(--green)">TN</strong> — True Negatives: normal correctly classified</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <div class="cm-cell cm-fp" style="min-width:24px;padding:0.3rem"></div>
+            <span><strong style="color:var(--yellow)">FP</strong> — False Positives: normal flagged as DDoS</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <div class="cm-cell cm-fn" style="min-width:24px;padding:0.3rem"></div>
+            <span><strong style="color:var(--orange)">FN</strong> — False Negatives: DDoS missed</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center">
+            <div class="cm-cell cm-tp" style="min-width:24px;padding:0.3rem"></div>
+            <span><strong style="color:var(--red)">TP</strong> — True Positives: DDoS correctly detected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Metrics -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i class="fa-solid fa-network-wired"></i> Network Metrics</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem">
+        <div class="kpi-card kpi-accent">
+          <div class="kpi-label">Avg Throughput</div>
+          <div class="kpi-value" id="net-throughput">—</div>
+          <div class="kpi-sub">bytes/sec avg</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Duration</div>
+          <div class="kpi-value" id="net-duration">—</div>
+          <div class="kpi-sub">per flow</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Flows</div>
+          <div class="kpi-value" id="net-flows">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Packet Loss</div>
+          <div class="kpi-value" id="net-pkt-loss">N/A</div>
+          <div class="kpi-sub">Requires probe</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Latency</div>
+          <div class="kpi-value" id="net-latency">N/A</div>
+          <div class="kpi-sub">Requires probe</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script src="../js/config.js?v=3.2"></script>
+<script src="../js/api.js?v=3.2"></script>
+<script src="../js/utils.js?v=3.2"></script>
+<script src="../js/state.js?v=3.2"></script>
+<script src="../js/system.js?v=3.2"></script>
+</body>
+</html>
+

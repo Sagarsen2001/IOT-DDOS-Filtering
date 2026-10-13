@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | IoT DDoS Monitor</title>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App Styles (Cache-busted) -->
+  <link rel="stylesheet" href="../css/main.css?v=3.2" />
+  <link rel="stylesheet" href="../css/dashboard.css?v=3.2" />
+  <link rel="stylesheet" href="../css/tables.css?v=3.2" />
+  <link rel="stylesheet" href="../css/charts.css?v=3.2" />
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2" />
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+  <!-- ═══════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════ -->
+  <header class="app-header" role="banner">
+    <!-- Brand -->
+    <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <span>IoT DDoS Monitor</span>
+    </a>
+
+    <!-- Mobile sidebar toggle -->
+    <button
+      class="sidebar-toggle"
+      id="sidebar-toggle"
+      type="button"
+      aria-label="Toggle navigation sidebar"
+      aria-expanded="false"
+      aria-controls="sidebar"
+    >
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+
+    <div class="header-spacer" role="separator"></div>
+
+    <!-- Header meta controls -->
+    <div class="header-meta" role="toolbar" aria-label="Dashboard controls">
+      <!-- Demo / real mode badge -->
+      <span
+        id="demo-mode-badge"
+        class="demo-badge"
+        style="display:none"
+        aria-live="polite"
+        aria-atomic="true"
+      >DEMO MODE</span>
+
+      <!-- API connectivity indicator -->
+      <span class="api-status-dot" id="api-dot" aria-hidden="true"></span>
+      <span
+        id="api-status-text"
+        aria-live="polite"
+        aria-atomic="true"
+      >Connecting&hellip;</span>
+
+      <!-- Last-updated timestamp -->
+      <span class="last-updated" aria-live="polite" aria-atomic="true">
+        Updated:&nbsp;<span id="last-updated-time">&mdash;</span>
+      </span>
+
+      <!-- Manual refresh -->
+      <button
+        class="header-refresh-btn"
+        id="global-refresh"
+        type="button"
+        aria-label="Refresh dashboard data"
+        title="Refresh"
+      >
+        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+      </button>
+
+      <!-- Poll interval selector -->
+      <label for="poll-interval" class="sr-only">Auto-refresh interval</label>
+      <select id="poll-interval" aria-label="Auto-refresh interval">
+        <option value="2000">2s</option>
+        <option value="5000" selected>5s</option>
+        <option value="10000">10s</option>
+        <option value="30000">30s</option>
+      </select>
+
+      <!-- Theme Toggle -->
+      <button
+        class="header-theme-toggle"
+        id="theme-toggle-btn"
+        type="button"
+        aria-label="Toggle light or dark theme"
+        title="Toggle Theme"
+      >
+        <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════
+       APP BODY (Flex wrapper for sidebar + main)
+  ═══════════════════════════════════════════ -->
+  <div class="app-body">
+
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item active" href="dashboard.html" aria-current="page"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span></a>
+      <a class="nav-item" href="devices.html"><i class="fa-solid fa-microchip"></i> <span>IoT Devices</span></a>
+      <a class="nav-item" href="traffic.html"><i class="fa-solid fa-wave-square"></i> <span>Traffic Monitor</span></a>
+      <a class="nav-item" href="alerts.html"><i class="fa-solid fa-bell"></i> <span>Detections &amp; Alerts</span><span class="nav-badge" id="alerts-badge" style="display:none">0</span></a>
+      <a class="nav-item" href="mitigations.html"><i class="fa-solid fa-shield-virus"></i> <span>Mitigations</span></a>
+      <a class="nav-item" href="system.html"><i class="fa-solid fa-server"></i> <span>System Status</span></a>
+    </nav>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════ -->
+  <main class="main-content" id="main-content" role="main">
+
+    <!-- ── Page Header ─────────────────────────── -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1 class="page-title">Security Dashboard</h1>
+        <p class="page-subtitle">Real-time IoT network monitoring and threat detection</p>
+      </div>
+      <div class="page-actions" role="toolbar" aria-label="Page actions">
+        <button
+          class="btn btn-success"
+          id="btn-start-demo"
+          type="button"
+          aria-label="Start demo mode"
+        >
+          <i class="fa-solid fa-play" aria-hidden="true"></i>
+          Start Demo
+        </button>
+        <button
+          class="btn btn-ghost"
+          id="btn-stop-demo"
+          type="button"
+          aria-label="Stop demo mode"
+        >
+          <i class="fa-solid fa-stop" aria-hidden="true"></i>
+          Stop Demo
+        </button>
+        <button
+          class="btn btn-ghost"
+          id="page-refresh-btn"
+          type="button"
+          aria-label="Refresh page data"
+        >
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Backend Offline Banner ──────────────── -->
+    <div
+      class="alert-banner"
+      id="backend-offline-banner"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      hidden
+    >
+      <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+      <div class="alert-banner-body">
+        <strong>Backend Offline</strong>
+        <span>Unable to reach the monitoring backend. Data shown may be stale. Retrying&hellip;</span>
+      </div>
+    </div>
+
+    <!-- ── KPI Grid ────────────────────────────── -->
+    <section class="kpi-grid" aria-label="Key performance indicators">
+
+      <!-- Total Devices -->
+      <div class="kpi-card" id="kpi-total-devices" aria-label="Total Devices">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-microchip" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">Total Devices</div>
+        <div class="kpi-value" id="kpi-total-devices-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-total-devices-sub"></div>
+      </div>
+
+      <!-- Active Devices -->
+      <div class="kpi-card kpi-success" id="kpi-active-devices" aria-label="Active Devices">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">Active Devices</div>
+        <div class="kpi-value" id="kpi-active-devices-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-active-devices-sub"></div>
+      </div>
+
+      <!-- Suspicious -->
+      <div class="kpi-card kpi-warning" id="kpi-suspicious" aria-label="Suspicious Devices">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">Suspicious</div>
+        <div class="kpi-value" id="kpi-suspicious-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-suspicious-sub"></div>
+      </div>
+
+      <!-- Blocked -->
+      <div class="kpi-card kpi-danger" id="kpi-blocked" aria-label="Blocked Devices">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-ban" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">Blocked</div>
+        <div class="kpi-value" id="kpi-blocked-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-blocked-sub"></div>
+      </div>
+
+      <!-- ML Accuracy -->
+      <div class="kpi-card kpi-accent" id="kpi-accuracy" aria-label="ML Accuracy">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-brain" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">ML Accuracy</div>
+        <div class="kpi-value" id="kpi-accuracy-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-accuracy-sub"></div>
+      </div>
+
+      <!-- False Positive Rate -->
+      <div class="kpi-card" id="kpi-fpr" aria-label="False Positive Rate">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-percent" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-label">False Positive Rate</div>
+        <div class="kpi-value" id="kpi-fpr-val" aria-live="polite">&mdash;</div>
+        <div class="kpi-sub" id="kpi-fpr-sub"></div>
+      </div>
+
+    </section>
+
+    <!-- ── Charts Row ──────────────────────────── -->
+    <div class="charts-row" role="region" aria-label="Traffic charts">
+
+      <!-- Traffic Over Time -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Traffic Over Time</h2>
+          <div class="chart-legend" aria-label="Chart legend">
+            <span class="legend-item legend-normal">
+              <span class="legend-dot" aria-hidden="true"></span>Normal
+            </span>
+            <span class="legend-item legend-ddos">
+              <span class="legend-dot" aria-hidden="true"></span>DDoS
+            </span>
+          </div>
+        </div>
+        <div class="chart-container" style="height:220px">
+          <canvas
+            id="traffic-chart"
+            role="img"
+            aria-label="Line chart showing normal and DDoS traffic over time"
+          ></canvas>
+        </div>
+      </div>
+
+      <!-- Traffic Distribution -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Traffic Distribution</h2>
+        </div>
+        <div class="chart-container" style="height:220px">
+          <canvas
+            id="dist-chart"
+            role="img"
+            aria-label="Doughnut chart showing traffic distribution by classification"
+          ></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Dashboard Grid ──────────────────────── -->
+    <div class="dashboard-grid" role="region" aria-label="Dashboard panels">
+
+      <!-- Left / main column -->
+      <div class="dashboard-main">
+        <div class="bottom-row">
+
+          <!-- Recent Alerts -->
+          <section class="card" aria-label="Recent Alerts">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                Recent Alerts
+              </h2>
+            </div>
+            <div class="card-body">
+              <ul
+                id="recent-alerts-list"
+                class="item-list"
+                role="list"
+                aria-live="polite"
+                aria-atomic="false"
+                aria-relevant="additions removals"
+              >
+                <!-- Populated by dashboard.js -->
+                <li class="empty-state" role="listitem">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  <span>No recent alerts</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- Suspicious Devices -->
+          <section class="card" aria-label="Suspicious Devices">
+            <div class="card-header">
+              <h2 class="card-title">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                Suspicious Devices
+              </h2>
+            </div>
+            <div class="card-body">
+              <ul
+                id="suspicious-devices-list"
+                class="item-list"
+                role="list"
+                aria-live="polite"
+                aria-atomic="false"
+                aria-relevant="additions removals"
+              >
+                <!-- Populated by dashboard.js -->
+                <li class="empty-state" role="listitem">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  <span>No suspicious devices detected</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+        </div><!-- /.bottom-row -->
+      </div><!-- /.dashboard-main -->
+
+      <!-- Right panel -->
+      <aside class="right-panel" aria-label="System panels">
+
+        <!-- System Status -->
+        <section class="card" aria-label="System Status">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i class="fa-solid fa-server" aria-hidden="true"></i>
+              System Status
+            </h2>
+          </div>
+          <div class="card-body">
+            <div
+              id="system-status-grid"
+              class="status-grid"
+              role="list"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <!-- Flask -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                  Flask API
+                </span>
+                <span class="status-indicator" id="status-flask" aria-label="Flask API status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- Database -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-database" aria-hidden="true"></i>
+                  Database
+                </span>
+                <span class="status-indicator" id="status-db" aria-label="Database status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- ML Model -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                  ML Model
+                </span>
+                <span class="status-indicator" id="status-ml" aria-label="ML Model status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- MQTT -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+                  MQTT Broker
+                </span>
+                <span class="status-indicator" id="status-mqtt" aria-label="MQTT Broker status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- Zeek -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>
+                  Zeek IDS
+                </span>
+                <span class="status-indicator" id="status-zeek" aria-label="Zeek IDS status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- Ryu -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
+                  Ryu Controller
+                </span>
+                <span class="status-indicator" id="status-ryu" aria-label="Ryu Controller status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+              <!-- OVS -->
+              <div class="status-row" role="listitem">
+                <span class="status-label">
+                  <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                  OVS Switch
+                </span>
+                <span class="status-indicator" id="status-ovs" aria-label="OVS Switch status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status-text">Unknown</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Detection Pipeline -->
+        <section class="card" aria-label="Detection Pipeline">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+              Detection Pipeline
+            </h2>
+          </div>
+          <div class="card-body">
+            <div
+              id="pipeline-steps"
+              class="pipeline"
+              role="list"
+              aria-label="Detection pipeline steps"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <!-- Populated by dashboard.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="card" aria-label="Quick Actions">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+              Quick Actions
+            </h2>
+          </div>
+          <div class="card-body">
+            <div class="quick-actions">
+              <button
+                class="btn btn-success btn-full"
+                id="btn-start-demo2"
+                type="button"
+                aria-label="Start demo mode"
+              >
+                <i class="fa-solid fa-play" aria-hidden="true"></i>
+                Start Demo
+              </button>
+              <button
+                class="btn btn-ghost btn-full"
+                id="btn-stop-demo2"
+                type="button"
+                aria-label="Stop demo mode"
+              >
+                <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                Stop Demo
+              </button>
+              <a
+                class="btn btn-ghost btn-full"
+                href="alerts.html"
+                aria-label="Navigate to Detections and Alerts page"
+              >
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                View All Alerts
+              </a>
+              <a
+                class="btn btn-ghost btn-full"
+                href="mitigations.html"
+                aria-label="Navigate to Mitigations page"
+              >
+                <i class="fa-solid fa-shield-virus" aria-hidden="true"></i>
+                View Mitigations
+              </a>
+            </div>
+          </div>
+        </section>
+
+      </aside><!-- /.right-panel -->
+
+    </div><!-- /.dashboard-grid -->
+
+  </main><!-- /#main-content -->
+  </div><!-- /.app-body -->
+
+  <!-- ═══════════════════════════════════════════
+       TOAST CONTAINER
+  ═══════════════════════════════════════════ -->
+  <div
+    id="toast-container"
+    class="toast-container"
+    role="region"
+    aria-label="Notifications"
+    aria-live="polite"
+    aria-atomic="false"
+    aria-relevant="additions"
+  ></div>
+
+  <!-- ═══════════════════════════════════════════
+       CONFIRM MODAL
+  ═══════════════════════════════════════════ -->
+  <div
+    class="modal-backdrop hidden"
+    id="confirm-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    aria-describedby="modal-body"
+  >
+    <div class="modal-box" role="document">
+      <h3 class="modal-title" id="modal-title">Confirm Action</h3>
+      <p class="modal-body" id="modal-body"></p>
+      <div class="modal-actions">
+        <button
+          class="btn btn-ghost"
+          id="modal-cancel"
+          type="button"
+          aria-label="Cancel"
+        >Cancel</button>
+        <button
+          class="btn btn-danger"
+          id="modal-confirm"
+          type="button"
+          aria-label="Confirm action"
+        >Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCRIPTS  (order is critical)
+  ═══════════════════════════════════════════ -->
+  <script src="../js/config.js?v=3.2"></script>
+  <script src="../js/api.js?v=3.2"></script>
+  <script src="../js/utils.js?v=3.2"></script>
+  <script src="../js/state.js?v=3.2"></script>
+  <script src="../js/dashboard.js?v=3.2"></script>
+
+</body>
+</html>

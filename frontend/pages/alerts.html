@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Detections &amp; Alerts | IoT DDoS Monitor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="../css/main.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/tables.css?v=3.2"/>
+  <link rel="stylesheet" href="../css/responsive.css?v=3.2"/>
+
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body class="app-wrapper">
+
+<!-- Header -->
+<header class="app-header">
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <a href="dashboard.html" class="header-brand" style="text-decoration:none">
+    <i class="fa-solid fa-shield-halved brand-icon"></i>
+    IoT DDoS Monitor
+  </a>
+  <div class="header-spacer"></div>
+  <div class="header-meta">
+    <span id="demo-mode-badge" class="demo-badge" style="display:none">
+      <i class="fa-solid fa-flask"></i> DEMO MODE
+    </span>
+    <span class="api-status-dot" id="api-dot"></span>
+    <span id="api-status-text" style="font-size:0.78rem">Connecting…</span>
+    <span class="last-updated" style="font-size:0.78rem">Updated: <span id="last-updated-time">—</span></span>
+    <button class="header-refresh-btn" id="global-refresh" aria-label="Refresh">
+      <i class="fa-solid fa-rotate-right"></i> Refresh
+    </button>
+    <button
+      class="header-theme-toggle"
+      id="theme-toggle-btn"
+      type="button"
+      aria-label="Toggle light or dark theme"
+      title="Toggle Theme"
+    >
+      <i class="fa-solid fa-moon" id="theme-toggle-icon" aria-hidden="true"></i>
+    </button>
+  </div>
+</header>
+
+<div class="app-body">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item" href="dashboard.html"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a class="nav-item" href="devices.html"><i class="fa-solid fa-microchip"></i> IoT Devices</a>
+      <a class="nav-item" href="traffic.html"><i class="fa-solid fa-wave-square"></i> Traffic Monitor</a>
+      <a class="nav-item active" href="alerts.html" aria-current="page">
+        <i class="fa-solid fa-bell"></i> Detections &amp; Alerts
+        <span class="nav-badge" id="alerts-badge" style="display:none">0</span>
+      </a>
+      <a class="nav-item" href="mitigations.html"><i class="fa-solid fa-shield-virus"></i> Mitigations</a>
+      <a class="nav-item" href="system.html"><i class="fa-solid fa-server"></i> System Status</a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-bell" style="color:var(--accent)"></i> Detections &amp; Alerts</h1>
+        <p class="page-subtitle">ML detection results and security alerts from the monitoring pipeline</p>
+      </div>
+      <div class="btn-group" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="alerts-refresh-btn">
+          <i class="fa-solid fa-rotate-right"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:1.25rem">
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="fa-solid fa-bell"></i> Total Alerts</div>
+        <div class="kpi-value" id="kpi-total-alerts">—</div>
+        <div class="kpi-sub">All time</div>
+      </div>
+      <div class="kpi-card kpi-danger">
+        <div class="kpi-label"><i class="fa-solid fa-triangle-exclamation"></i> High Severity</div>
+        <div class="kpi-value" id="kpi-high-alerts">—</div>
+        <div class="kpi-sub">HIGH / CRITICAL</div>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-label"><i class="fa-solid fa-circle-exclamation"></i> Unresolved</div>
+        <div class="kpi-value" id="kpi-open-alerts">—</div>
+        <div class="kpi-sub">Status: open</div>
+      </div>
+      <div class="kpi-card kpi-danger">
+        <div class="kpi-label"><i class="fa-solid fa-virus"></i> DDoS Detected</div>
+        <div class="kpi-value" id="kpi-ddos-count">—</div>
+        <div class="kpi-sub">ML predictions</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-group" style="flex:1;min-width:180px;max-width:260px">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="input" id="alert-search" placeholder="Search IP or message…" type="search" aria-label="Search alerts"/>
+      </div>
+      <select class="select" id="alert-severity-filter" aria-label="Filter by severity">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+      </select>
+      <select class="select" id="alert-status-filter" aria-label="Filter by status">
+        <option value="">All Status</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+      </select>
+      <select class="select" id="alert-type-filter" aria-label="Filter by type">
+        <option value="">All Types</option>
+        <option value="DDOS_DETECTED">DDOS_DETECTED</option>
+      </select>
+      <span id="alert-count-label" style="font-size:0.78rem;color:var(--text-secondary);white-space:nowrap"></span>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="card" style="padding:0">
+      <div class="table-wrapper">
+        <table id="alerts-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Source IP</th>
+              <th>Alert Type</th>
+              <th>Severity</th>
+              <th>Device</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-tbody">
+            <tr class="table-loading">
+              <td colspan="8">
+                <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:2rem;color:var(--text-secondary)">
+                  <span class="spinner"></span> Loading alerts…
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="alerts-pagination"></div>
+    </div>
+
+    <!-- Detections section -->
+    <div style="margin-top:1.5rem">
+      <div class="card-header" style="margin-bottom:0.75rem">
+        <h2 class="card-title"><i class="fa-solid fa-brain"></i> Recent ML Detections</h2>
+        <span id="detections-count-label" style="font-size:0.78rem;color:var(--text-secondary)"></span>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrapper">
+          <table id="detections-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Source IP</th>
+                <th>Dest IP</th>
+                <th>Protocol</th>
+                <th>Prediction</th>
+                <th>Confidence</th>
+                <th>Probability</th>
+              </tr>
+            </thead>
+            <tbody id="detections-tbody">
+              <tr class="table-loading">
+                <td colspan="7">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:2rem;color:var(--text-secondary)">
+                    <span class="spinner"></span> Loading detections…
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="detections-pagination"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Alert detail modal -->
+<div class="modal-backdrop hidden" id="alert-modal" role="dialog" aria-modal="true" aria-labelledby="alert-modal-title">
+  <div class="modal-box" style="max-width:480px">
+    <h3 class="modal-title" id="alert-modal-title">Alert Details</h3>
+    <div class="modal-body" id="alert-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="alert-modal-close">Close</button>
+      <button class="btn btn-danger" id="alert-mitigate-btn">
+        <i class="fa-solid fa-shield-virus"></i> Mitigate Source
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop hidden" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h3 class="modal-title" id="modal-title">Confirm Action</h3>
+    <p class="modal-body" id="modal-body"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script src="../js/config.js?v=3.2"></script>
+<script src="../js/api.js?v=3.2"></script>
+<script src="../js/utils.js?v=3.2"></script>
+<script src="../js/state.js?v=3.2"></script>
+<script src="../js/alerts.js?v=3.2"></script>
+</body>
+</html>
+

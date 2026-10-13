@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="refresh" content="0;url=pages/dashboard.html"/>
+  <title>IoT DDoS Monitor</title>
+  <link rel="stylesheet" href="css/main.css?v=3.2"/>
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .loading-msg { text-align:center; color: var(--text-secondary); }
+    .loading-msg .spinner { margin: 0 auto 1rem; width:32px; height:32px; border-width:3px; }
+  </style>
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme_v2') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+  <div class="loading-msg">
+    <div class="spinner"></div>
+    <p>Loading IoT DDoS Monitor…</p>
+    <p style="font-size:0.75rem;margin-top:0.5rem">
+      If you are not redirected, <a href="pages/dashboard.html">click here</a>.
+    </p>
+  </div>
+</body>
+</html>
+

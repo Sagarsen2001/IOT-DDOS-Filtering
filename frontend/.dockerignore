@@ -1,0 +1,12 @@
+# ── Git / editor ──────────────────────────────────────────────
+.git
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ── Docker meta (already handled by COPY/RUN) ────────────────
+Dockerfile
+.dockerignore
+
