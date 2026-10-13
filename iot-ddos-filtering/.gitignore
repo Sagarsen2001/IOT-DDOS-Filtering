@@ -8,8 +8,6 @@ __pycache__/
 data/processed/
 data/raw/
 data/*.db
-ml/artifacts/*.joblib
-ml/artifacts/*.json
 *.log
 .pytest_cache/
 .coverage

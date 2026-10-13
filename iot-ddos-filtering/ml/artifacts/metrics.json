@@ -1,0 +1,19 @@
+{
+  "model_version": "rf-v1",
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "false_positive_rate": 0.0,
+  "true_positive_rate": 1.0,
+  "confusion_matrix": {
+    "tn": 52,
+    "fp": 0,
+    "fn": 0,
+    "tp": 28
+  },
+  "support": {
+    "n_normal": 52,
+    "n_ddos": 28
+  }
+}
